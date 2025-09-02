@@ -34,7 +34,7 @@ class Initializer:
         self.fan_out = fan_out
 
     
-    def __call__(self) -> float:
+    def __call__(self) -> Variable:
 
         match self.fill_type:
 

@@ -45,5 +45,5 @@ class Neuron:
                 raise NotImplementedError(f'Activation of type {self.activation_type} does not have any implementation yet')
 
 
-    def get_params(self) -> list[float]:
+    def get_params(self) -> list[Variable]:
         return self.params
