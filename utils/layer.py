@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from utils.variable import Variable
 from utils.neuron import Activation, Neuron
 from utils.initializer import InitializationType, Initializer
@@ -27,7 +25,7 @@ class Dense:
             ))
 
     
-    def __call__(self, values: list):
+    def __call__(self, values: list) -> list[Variable]:
         
         output = [neuron(values) for neuron in self.neurons]
 
