@@ -1,7 +1,4 @@
-__all__ = ['layer', 'neuron', 'variable', 'sequential', 'initializer']
+__all__ = ['nn', 'scaler']
 
-from . import layer
-from . import neuron
-from . import variable
-from . import sequential
-from . import initializer
+from . import nn
+from . import scaler
