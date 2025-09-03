@@ -1,6 +1,6 @@
 import json
 
-from utils.layer import Layer
+from utils.nn.layer import Layer
 
 def is_in_type_union(value: any, union_type: any):
     

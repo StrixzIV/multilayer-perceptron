@@ -1,7 +1,7 @@
 from enum import Enum
 
-from utils.variable import Variable
-from utils.initializer import Initializer
+from utils.nn.variable import Variable
+from utils.nn.initializer import Initializer
 
 class Activation(Enum):
     TANH = "tanh"

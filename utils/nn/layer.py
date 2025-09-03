@@ -3,9 +3,9 @@ import random
 from enum import Enum
 from typing import TypeAlias
 
-from utils.variable import Variable
-from utils.neuron import Activation, Neuron
-from utils.initializer import InitializationType, Initializer
+from utils.nn.variable import Variable
+from utils.nn.neuron import Activation, Neuron
+from utils.nn.initializer import InitializationType, Initializer
 
 class LayerType(Enum):
     DENSE = "dense"

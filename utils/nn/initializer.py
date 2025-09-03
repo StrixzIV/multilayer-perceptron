@@ -3,7 +3,7 @@ import random
 
 from enum import Enum
 
-from utils.variable import Variable
+from utils.nn.variable import Variable
 
 class InitializationType(Enum):
     ZEROS = "zeros"
