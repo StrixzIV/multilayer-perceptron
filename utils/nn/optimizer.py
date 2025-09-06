@@ -64,7 +64,7 @@ class RMSProp(Optimizer):
             )
 
             # Adapt learning rate based on the average squared graident
-            adaptive_lr = self.learning_rate / (math.sqrt(self.squared_grad_avg[i]) + self.eps)
+            adaptive_lr = self.learning_rate / (math.sqrt(self.squared_grad_avg[i]) + self.epsilon)
             param.value -= adaptive_lr * param.grad
         
         self.step += 1
