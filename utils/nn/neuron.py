@@ -18,7 +18,7 @@ class Neuron:
         self.weights = [initializer() for _ in range(input_size)]
 
         self.activation_type = activation_type
-        self.params = self.weights + list(self.bias)
+        self.params = self.weights + [self.bias]
 
 
     def __call__(self, x: list[Variable | float]) -> Variable:

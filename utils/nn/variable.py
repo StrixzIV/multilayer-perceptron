@@ -161,7 +161,7 @@ class Variable:
         ret = Variable(result, _parents=(self, ), _op=AutogradOPS.SIGMOID)
 
         def _backward():
-            self.grad += ((1 - ret.val) * ret.val) * ret.grad
+            self.grad += ((1 - ret.value) * ret.value) * ret.grad
 
         ret._backward = _backward
         return ret
@@ -169,7 +169,7 @@ class Variable:
 
     def relu(self):
 
-        result = max(0, self.val)
+        result = max(0, self.value)
         ret = Variable(result, _parents=(self, ), _op=AutogradOPS.RELU)
         
         def _backward():
