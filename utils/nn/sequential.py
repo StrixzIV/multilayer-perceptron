@@ -6,26 +6,22 @@ from typing import Callable
 
 from utils.nn import losses, metrics
 from utils.nn.variable import Variable
-from utils.nn.layer import Dense, Layer
+from utils.nn.layer import Dense, Dropout
 from utils.nn.optimizer import Optimizer
 
-def is_in_type_union(value: any, union_type: any):
-    
-    if hasattr(union_type, '__args__'):
-        return issubclass(value, union_type.__args__)
-    
-    return False
+def is_valid_layer(layer: any):
+    return isinstance(layer, (Dense, Dropout))
 
 
 class Sequential:
 
-    def __init__(self, layers: list[Layer]):
+    def __init__(self, layers: list[Dense | Dropout]):
 
         self.layers = layers
         self._validate_layers(layers)
 
         self.optmizer = None
-        self.loss_function = None
+        self.loss_functiontion = None
         self.metric = None
 
         self.batch_size = None
@@ -47,19 +43,20 @@ class Sequential:
         return self.forward_batch(x)
 
 
-    def _validate_layers(layers: list[Layer]) -> None:
+    @staticmethod
+    def _validate_layers(layers: list[Dense | Dropout]) -> None:
 
         if not isinstance(layers, list) or len(layers) == 0:
             raise ValueError('Sequential model layer list should not be empty')
 
         for (idx, layer) in enumerate(layers):
-            if not is_in_type_union(layer, Layer):
+            if not is_valid_layer(layer):
                 raise TypeError(f'Invalid type of sequential model layer at idx #{idx} (got {type(layer)})')
 
         # Layer continuity check
         for idx in range(len(layers) - 1):
 
-            output_size = layers[idx].input_size
+            output_size = layers[idx].output_size
             next_input_size = layers[idx + 1].input_size
 
             if output_size != next_input_size:
@@ -189,7 +186,7 @@ class Sequential:
         y_predict = self.forward_batch(x_batch)
         y_flatten = [[var.value for var in var_list] for var_list in y_predict]
 
-        loss = self.loss_function(y_predict, y_batch)
+        loss = self.loss_functiontion(y_predict, y_batch)
         metric = self._calculate_metrics(y_flatten, y_batch)
 
         return (loss, metric)
@@ -210,7 +207,7 @@ class Sequential:
     ) -> None:
 
         self.optimizer = optimizer
-        self.loss_func = loss_func
+        self.loss_function = loss_func
         self.epochs = epochs
         self.batch_size = batch_size
         self.metric = metric
@@ -236,15 +233,15 @@ class Sequential:
                 self.optimizer.reset_gradient()
                 batch_out_values = self.forward_batch(x_batch)
 
-                batch_loss = self.loss_func(batch_out_values, y_batch)
+                batch_loss = self.loss_function(batch_out_values, y_batch)
                 batch_loss.backward()
     
                 y_pred.extend(batch_out_values)
                 y_true.extend(y_batch)
     
-                self.optimizer.step()
+                self.optimizer.update()
 
-            epoch_loss = self.loss_func(y_true, y_pred)
+            epoch_loss = self.loss_function(y_true, y_pred)
             train_metric = self._calculate_metrics(y_true, y_pred)
 
             # validation (if provided)
