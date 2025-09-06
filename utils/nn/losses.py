@@ -7,7 +7,7 @@ def categorical_crossentropy_loss(y_true: list[list[int]], y_predict: list[list[
 
     for i in range(real_val_size):
         for j in range(len(y_true[i])):
-            loss -= y_true[i][j] * (y_predict[i][j] + EPSILON).log()
+            loss -= y_true[i][j] * Variable(y_predict[i][j] + EPSILON).log().value
 
     return loss / real_val_size
 

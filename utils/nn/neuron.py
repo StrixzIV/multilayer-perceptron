@@ -24,7 +24,7 @@ class Neuron:
     def __call__(self, x: list[Variable | float]) -> Variable:
 
         # y = \sigma(wx) + b
-        weighted_sum = Variable(sum([(w_i * x_i) for (w_i, x_i) in zip(self.weights, x)]))
+        weighted_sum: Variable = sum([(w_i * x_i) for (w_i, x_i) in zip(self.weights, x)])
         weighted_sum += self.bias
 
         match self.activation_type:

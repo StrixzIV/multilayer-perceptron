@@ -186,7 +186,7 @@ class Sequential:
         y_predict = self.forward_batch(x_batch)
         y_flatten = [[var.value for var in var_list] for var_list in y_predict]
 
-        loss = self.loss_functiontion(y_predict, y_batch)
+        loss = self.loss_function(y_predict, y_batch)
         metric = self._calculate_metrics(y_flatten, y_batch)
 
         return (loss, metric)
@@ -241,7 +241,7 @@ class Sequential:
     
                 self.optimizer.update()
 
-            epoch_loss = self.loss_function(y_true, y_pred)
+            epoch_loss = loss_func(y_true, y_pred)
             train_metric = self._calculate_metrics(y_true, y_pred)
 
             # validation (if provided)
