@@ -10,11 +10,85 @@ from typing import Callable
 
 from utils.nn import losses, metrics
 from utils.nn.variable import Variable
-from utils.nn.layer import Dense, Dropout
 from utils.nn.optimizer import Optimizer
+from utils.nn.layer import Dense, Dropout
 
 def is_valid_layer(layer: any):
     return isinstance(layer, (Dense, Dropout))
+
+
+class EarlyStopping:
+    
+    def __init__(self, patience: int = 10, min_delta: float = 0.0, restore_best_weights: bool = True):
+
+        self.patience = patience
+        self.min_delta = min_delta
+        self.restore_best_weights = restore_best_weights
+        
+        self.best_loss = float('inf')
+        self.best_epoch = 0
+        self.wait = 0
+        self.stopped_epoch = 0
+        self.best_weights = None
+
+
+    def __call__(self, val_loss: float, model: 'Sequential', epoch: int) -> bool:
+
+        if val_loss.value < (self.best_loss - Variable(self.min_delta)).value:
+            self.best_loss = val_loss
+            self.best_epoch = epoch
+            self.wait = 0
+    
+            if self.restore_best_weights:
+                self.best_weights = self._save_weights(model)
+        
+        else:
+            self.wait += 1
+            
+        if self.wait >= self.patience:
+
+            self.stopped_epoch = epoch
+
+            if self.restore_best_weights and self.best_weights is not None:
+                self._restore_weights(model, self.best_weights)
+                
+            return True
+            
+        return False
+    
+    def _save_weights(self, model: 'Sequential') -> list:
+
+        weights = []
+
+        for layer in model.layers:
+
+            if hasattr(layer, 'weights') and hasattr(layer, 'biases'):
+
+                layer_weights = {
+                    'weights': [[w.value for w in row] for row in layer.weights],
+                    'biases': [b.value for b in layer.biases]
+                }
+
+                weights.append(layer_weights)
+
+            else:
+                weights.append(None)
+
+        return weights
+
+    
+    def _restore_weights(self, model: 'Sequential', weights: list) -> None:
+
+        for i, layer in enumerate(model.layers):
+
+            if weights[i] is not None and hasattr(layer, 'weights') and hasattr(layer, 'biases'):
+
+                for j in range(len(layer.weights)):
+                    for k in range(len(layer.weights[j])):
+                        layer.weights[j][k].value = weights[i]['weights'][j][k]
+                
+                for j in range(len(layer.biases)):
+                    layer.biases[j].value = weights[i]['biases'][j]
 
 
 class Sequential:
@@ -269,7 +343,7 @@ class Sequential:
         x_validate: list[list[float]] | None = None,
         y_validate: list[list[float]] | None = None,
         display_interval: int = 10,
-        max_display_rows: int = 10
+        early_stopping: EarlyStopping | None = None
     ) -> None:
 
         self.optimizer = optimizer
@@ -284,6 +358,9 @@ class Sequential:
         self.y_train = y_train
         self.x_validate = x_validate
         self.y_validate = y_validate
+
+        if early_stopping and (not x_validate or not y_validate):
+            raise ValueError("Early stopping requires validation data (x_validate and y_validate)")
         
         console = Console()
 
@@ -340,6 +417,11 @@ class Sequential:
                     self.val_metric_history.append(float(val_metric))
 
                 progress.update(task, advance=1)
+
+                should_stop = False
+
+                if early_stopping is not None and val_loss is not None:
+                    should_stop = early_stopping(val_loss, self, epoch)
                 
                 if (epoch % display_interval) == 0 or epoch == epochs:
 
@@ -354,4 +436,14 @@ class Sequential:
                     
                     table.add_row(*row_data)
                     live.refresh()
+
+                if should_stop:
+                    
+                    console.print(f"\n[bold red]Early stopping triggered at epoch {epoch}[/bold red]")
+                    console.print(f"[green]Best epoch: {early_stopping.best_epoch} with validation loss: {early_stopping.best_loss.value:.4f}[/green]")
+                    
+                    if early_stopping.restore_best_weights:
+                        console.print("[blue]Best weights restored[/blue]")
+                    
+                    break
 
