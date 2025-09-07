@@ -447,3 +447,11 @@ class Sequential:
                     
                     break
 
+    
+    def parameters(self):
+        
+        params = []
+        for layer in self.layers:
+            params.extend(layer.get_params())
+            
+        return params

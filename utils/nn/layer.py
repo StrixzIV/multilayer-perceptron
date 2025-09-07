@@ -46,8 +46,17 @@ class Dense:
 
     @staticmethod
     def _softmax(output: list[Variable]) -> list[Variable]:
-        result = [out.exp() for out in output]
+        # Find the maximum value in the output list to subtract for numerical stability
+        max_val = max(out.value for out in output)
+
+        # Subtract the max value from each element before applying exp()
+        result = [(out - max_val).exp() for out in output]
         result_sum = sum(result)
+        
+        # Check for division by zero in case of underflow
+        if result_sum.value == 0:
+            return [Variable(1.0/len(output)) for _ in output]
+
         return [res / result_sum for res in result]
     
 
