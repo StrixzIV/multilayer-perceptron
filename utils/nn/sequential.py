@@ -210,6 +210,53 @@ class Sequential:
         return (loss, metric)
     
 
+    def summary(self) -> None:
+
+        console = Console()
+
+        table = Table(title="Model Architecture Summary", show_header=True, header_style="bold magenta")
+        table.add_column("Layer", style="cyan", width=8)
+        table.add_column("Type", style="green", width=12)
+        table.add_column("Input Shape", style="yellow", width=12)
+        table.add_column("Output Shape", style="yellow", width=12)
+        table.add_column("Activation", style="blue", width=12)
+        table.add_column("Param #", justify="right", style="red", width=10)
+        
+        total_params = 0
+        trainable_params = 0
+        
+        for i, layer in enumerate(self.layers):
+            layer_params = len(layer.get_params())
+            total_params += layer_params
+
+            if hasattr(layer, 'rate'):
+                layer_type = "Dropout"
+                activation = f"rate={layer.rate}"
+            
+            elif hasattr(layer, 'activation'):
+                # Dense layer
+                layer_type = "Dense"
+                activation = layer.activation.value
+                if hasattr(layer, 'neurons'):
+                    trainable_params += layer_params
+            
+            else:
+                layer_type = "Unknown"
+                activation = "N/A"
+            
+            table.add_row(
+                f"{i+1}",
+                layer_type,
+                f"({layer.input_size}, NULL)",
+                f"(NULL, {layer.output_size})",
+                activation,
+                f"{layer_params:,}"
+            )
+        
+        console.print(table)
+        console.print(f"\n[bold]Total params:[/bold] {total_params:,}")
+    
+
     def fit(
         self,
         x_train: list[list[float]],
