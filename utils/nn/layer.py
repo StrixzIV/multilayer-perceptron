@@ -63,7 +63,7 @@ class Dense:
 
     def as_dict(self) -> dict[str, any]:
         return {
-            'layer_type': LayerType.DENSE,
+            'layer_type': LayerType.DENSE.value,
             'input_size': self.input_size,
             'output_size': self.output_size,
             'activation_type': self.activation.value,
@@ -148,7 +148,7 @@ class Dropout:
 
     def as_dict(self) -> dict[str, any]:
         return {
-            'layer_type': LayerType.DROPOUT,
+            'layer_type': LayerType.DROPOUT.value,
             'rate': self.rate,
         }
 
