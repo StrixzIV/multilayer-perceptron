@@ -149,7 +149,7 @@ def classification_example():
         metric="accuracy",
         x_validate=X_test,
         y_validate=y_test,
-        display_interval=10
+        display_interval=1
     )
     
     # Make predictions on test set

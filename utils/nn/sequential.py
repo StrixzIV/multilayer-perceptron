@@ -1,7 +1,11 @@
 import json
 import random
 
-from tqdm import tqdm
+from rich.live import Live
+from rich.table import Table
+from rich.console import Console, Group
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+
 from typing import Callable
 
 from utils.nn import losses, metrics
@@ -203,7 +207,8 @@ class Sequential:
         metric: str = "accuracy",
         x_validate: list[list[float]] | None = None,
         y_validate: list[list[float]] | None = None,
-        display_interval: int = 10
+        display_interval: int = 10,
+        max_display_rows: int = 10
     ) -> None:
 
         self.optimizer = optimizer
@@ -216,53 +221,75 @@ class Sequential:
 
         self.x_train = x_train
         self.y_train = y_train
-
         self.x_validate = x_validate
         self.y_validate = y_validate
-
-        for epoch in range(1, epochs + 1):
-
-            y_true: list[list[float]] = []
-            y_pred: list[list[float]] = []
-
-            batch_iter = self._generate_batches(x_train, y_train)
-            batch_iter = tqdm(batch_iter, desc=f"Epoch {epoch}/{epochs}", leave=False)
-
-            for _, (x_batch, y_batch) in enumerate(batch_iter):
         
-                self.optimizer.reset_gradient()
-                batch_out_values = self.forward_batch(x_batch)
+        console = Console()
 
-                batch_loss = self.loss_function(batch_out_values, y_batch)
-                batch_loss.backward()
-    
-                y_pred.extend(batch_out_values)
-                y_true.extend(y_batch)
-    
-                self.optimizer.update()
+        table = Table(title=f"Training Progress (Loss: {loss_func.__name__})")
+        table.add_column("Epoch", justify="right", style="cyan")
+        table.add_column("Train Loss", justify="right", style="magenta")
+        table.add_column(f"Train {self.metric}", justify="right", style="green")
 
-            epoch_loss = loss_func(y_true, y_pred)
-            train_metric = self._calculate_metrics(y_true, y_pred)
+        if x_validate is not None and y_validate is not None:
+            table.add_column("Validation Loss", justify="right", style="yellow")
+            table.add_column(f"Validation {self.metric}", justify="right", style="red")
 
-            # validation (if provided)
-            if x_validate is not None and y_validate is not None:
-                val_loss, val_metric = self.evaluate(x_validate, y_validate)
+        progress = Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            TimeElapsedColumn(),
+            console=console
+        )
+        
+        task = progress.add_task("[cyan]Training...", total=epochs)
+        
+        with Live(Group(progress, table), refresh_per_second=10, console=console, vertical_overflow='visible') as live:
+            for epoch in range(1, epochs + 1):
+                y_true: list[list[float]] = []
+                y_pred: list[list[float]] = []
+                
+                batch_iter = self._generate_batches(x_train, y_train)
+                
+                for _, (x_batch, y_batch) in enumerate(batch_iter):
+                    self.optimizer.reset_gradient()
+                    batch_out_values = self.forward_batch(x_batch)
 
-            else:
+                    batch_loss = self.loss_function(batch_out_values, y_batch)
+                    batch_loss.backward()
+        
+                    y_pred.extend(batch_out_values)
+                    y_true.extend(y_batch)
+        
+                    self.optimizer.update()
+
+                epoch_loss = loss_func(y_true, y_pred)
+                train_metric = self._calculate_metrics(y_true, y_pred)
+
+                self.train_loss_history.append(float(epoch_loss))
+                self.train_metric_history.append(float(train_metric))
+                
                 val_loss, val_metric = None, None
+                if x_validate is not None and y_validate is not None:
+                    val_loss, val_metric = self.evaluate(x_validate, y_validate)
+                    self.val_loss_history.append(float(val_loss))
+                    self.val_metric_history.append(float(val_metric))
 
-            if (epoch % display_interval) == 0 or epoch == 1:
-                print(
-                    f"Epoch {epoch}/{epochs}  "
-                    f"train_loss={float(epoch_loss):.4f}  "
-                    f"{self.metric}: {float(train_metric)}    "
-                    f"val_loss={float(val_loss):.4f}  "
-                    f"val_{self.metric}={float(val_metric):.4f}"
-                )
+                progress.update(task, advance=1)
+                
+                if (epoch % display_interval) == 0 or epoch == epochs:
 
-            self.train_loss_history.append(float(epoch_loss))
-            self.train_metric_history.append(float(train_metric))
+                    row_data = [
+                        str(epoch),
+                        f"{float(epoch_loss):.4f}",
+                        f"{float(train_metric):.4f}"
+                    ]
 
-            self.val_loss_history.append(float(val_loss))
-            self.val_metric_history.append(float(val_metric))
+                    if val_loss is not None:
+                        row_data.extend([f"{float(val_loss):.4f}", f"{float(val_metric):.4f}"])
+                    
+                    table.add_row(*row_data)
+                    live.refresh()
 
