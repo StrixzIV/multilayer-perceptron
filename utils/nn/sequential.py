@@ -155,6 +155,18 @@ class Sequential:
                 raise NotImplementedError(f'Metric "{self.metric}" has not been implemented yet')
 
 
+    def enable_train_mode(self) -> None:
+        for layer in self.layers:
+            if hasattr(layer, 'enable_train_mode'):
+                layer.enable_train_mode()
+
+
+    def disable_train_mode(self) -> None:
+        for layer in self.layers:
+            if hasattr(layer, 'disable_train_mode'):
+                layer.disable_train_mode()
+
+
     def as_json(self, path: str = './model.json') -> None:
 
         states = [layer.as_dict() for layer in self.layers]
@@ -186,6 +198,8 @@ class Sequential:
 
 
     def evaluate(self, x_batch: list[list[float]], y_batch: list[list[float]]) -> tuple[float, float]:
+
+        self.disable_train_mode()
 
         y_predict = self.forward_batch(x_batch)
         y_flatten = [[var.value for var in var_list] for var_list in y_predict]
@@ -244,6 +258,7 @@ class Sequential:
             console=console
         )
         
+        self.enable_train_mode()
         task = progress.add_task("[cyan]Training...", total=epochs)
         
         with Live(Group(progress, table), refresh_per_second=10, console=console, vertical_overflow='visible') as live:

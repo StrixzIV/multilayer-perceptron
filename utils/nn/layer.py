@@ -102,10 +102,14 @@ class Dropout:
     During evaluation, it does nothing and just passes the data through.
     """
 
-    def __init__(self, rate: float):
+    def __init__(self, rate: float, input_size: int):
 
         if not (0.0 <= rate < 1.0):
             raise ValueError(f"Dropout rate must be in the range [0, 1), but got {rate}")
+        
+        self.input_size = input_size
+        self.output_size = input_size
+        self.activation = Activation.DROPOUT
         
         self.rate = rate
         self.training = True

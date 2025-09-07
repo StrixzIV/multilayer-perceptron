@@ -4,11 +4,16 @@ from utils.nn.variable import Variable
 from utils.nn.initializer import Initializer
 
 class Activation(Enum):
+    
     TANH = "tanh"
     RELU = "relu"
     SIGMOID = "sigmoid"
     LINEAR = "linear"
     SOFTMAX = "softmax"
+    
+    # Placeholder activation
+    DROPOUT = "dropout"
+
 
 class Neuron:
 
