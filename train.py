@@ -81,13 +81,23 @@ model = Sequential([
         initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=n_features, fan_out=16)
     ),
     
-    Dropout(rate=0.3, input_size=16),
+    Dropout(rate=0.35, input_size=16),
     
     Dense(
         shape=(16, 8),
         activation=Activation.RELU,
         initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=16, fan_out=8)
     ),
+
+    Dropout(rate=0.35, input_size=8),
+
+    Dense(
+        shape=(8, 8),
+        activation=Activation.RELU,
+        initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=8, fan_out=8)
+    ),
+
+    Dropout(rate=0.35, input_size=8),
     
     Dense(
         shape=(8, n_classes),
