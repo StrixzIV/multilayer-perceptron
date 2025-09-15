@@ -11,7 +11,7 @@ from utils.scaler.ZScoreScaler import ZScoreScaler
 from utils.nn.optimizer import Adam
 from utils.nn.neuron import Activation
 from utils.nn.layer import Dense, Dropout
-from utils.nn.losses import categorical_crossentropy_loss
+from utils.nn.losses import binary_crossentropy_loss
 from utils.nn.sequential import Sequential, EarlyStopping
 from utils.nn.initializer import Initializer, InitializationType
 
@@ -115,7 +115,7 @@ model.fit(
     x_train=x_train_scaled,
     y_train=y_train,
     optimizer=optimizer,
-    loss_func=categorical_crossentropy_loss,
+    loss_func=binary_crossentropy_loss,
     epochs=args.epochs,
     batch_size=16,
     metric="accuracy",
@@ -131,8 +131,8 @@ scaler.to_json(f"{args.output}_scaler.json")
 
 # Final evaluation
 console.print(f"\n[bold magenta]Final Evaluation:[/bold magenta]")
-final_loss, final_accuracy = model.evaluate(x_validate_scaled, y_validate)
+final_loss, final_accuracy = model.evaluate(x_validate_scaled, y_validate, 'accuracy')
 console.print(f"  Validation Loss: {float(final_loss):.4f}")
-console.print(f"  Validation Accuracy: {float(final_accuracy):.4f}")
+console.print(f"  Validation metric: {float(final_accuracy):.4f}")
 
 console.print(f"\n[green]Training completed! Model saved as '{args.output}.json'[/green]")
