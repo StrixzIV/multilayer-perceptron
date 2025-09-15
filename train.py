@@ -76,45 +76,35 @@ y_validate = vaildate_df[1].apply(onehot_encode).tolist()
 model = Sequential([
     
     Dense(
-        shape=(n_features, 16),
+        shape=(n_features, 128), # Increased from 16
         activation=Activation.RELU,
-        initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=n_features, fan_out=16)
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=n_features, fan_out=128)
     ),
     
-    Dropout(rate=0.35, input_size=16),
-    
+    Dropout(rate=0.15, input_size=128), # Slightly reduced dropout
+
     Dense(
-        shape=(16, 8),
+        shape=(128, 16),
         activation=Activation.RELU,
-        initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=16, fan_out=8)
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=128, fan_out=16)
     ),
 
-    Dropout(rate=0.35, input_size=8),
-
     Dense(
-        shape=(8, 8),
-        activation=Activation.RELU,
-        initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=8, fan_out=8)
-    ),
-
-    Dropout(rate=0.35, input_size=8),
-    
-    Dense(
-        shape=(8, n_classes),
+        shape=(16, n_classes), # Output layer
         activation=Activation.SOFTMAX,
-        initializer=Initializer(fill_type=InitializationType.GLOROT_UNIFORM, fan_in=8, fan_out=n_classes)
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=16, fan_out=n_classes)
     )
     
 ])
 
 optimizer = Adam(
     params=model.parameters(), 
-    learning_rate=0.005
+    learning_rate=0.001
 )
 
 early_stopping = EarlyStopping(
-    patience=10,
-    min_delta=0.01,
+    patience=5,
+    min_delta=0.001,
     restore_best_weights=True
 )
 

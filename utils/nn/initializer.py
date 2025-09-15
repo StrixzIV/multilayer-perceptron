@@ -1,9 +1,6 @@
-import math
-import random
+import numpy as np
 
 from enum import Enum
-
-from utils.nn.variable import Variable
 
 class InitializationType(Enum):
     ZEROS = "zeros"
@@ -17,62 +14,77 @@ class InitializationType(Enum):
     LECUN_NORMAL = "lecun_normal"
     LECUN_UNIFORM = "lecun_uniform"
 
-
 class Initializer:
 
-    def __init__(self,
-                fill_type: InitializationType = InitializationType.ZEROS,
-                stddev: float = 0.2,
-                constant_value: float = 0.0,
-                fan_in: int = 1,
-                fan_out: int = 1
-    ):
-        self.stddev = stddev
+    """
+    Initializes weights and biases for a Dense layer.
+    
+    Attributes:
+        fill_type (InitializationType): The type of initialization to use.
+        fan_in (int): The number of input units to the layer.
+        fan_out (int): The number of output units from the layer.
+    """
+
+    def __init__(self, fill_type: InitializationType, fan_in: int = None, fan_out: int = None, **kwargs):
         self.fill_type = fill_type
-        self.constant_value = constant_value
         self.fan_in = fan_in
         self.fan_out = fan_out
+        self.constant_value = kwargs.get('constant_value', 0.1)
 
-    
-    def __call__(self) -> Variable:
 
-        match self.fill_type:
+    def init_weights(self) -> np.ndarray:
 
-            case InitializationType.ZEROS:
-                return Variable(0.0)
-            
-            case InitializationType.CONSTANT:
-                return Variable(self.constant_value)
-            
-            case InitializationType.RANDOM_UNIFORM:
-                return Variable(random.uniform(a = -0.2, b = 0.2))
-            
-            case InitializationType.RANDOM_NORMAL:
-                return Variable(random.normalvariate(mu = 0, sigma = self.stddev))
-            
-            case InitializationType.GLOROT_NORMAL:
-                stddev = math.sqrt(2.0 / (self.fan_in + self.fan_out))
-                return Variable(random.normalvariate(mu=0, sigma=stddev))
+        """Initialize weights based on the specified initialization type."""
 
-            case InitializationType.GLOROT_UNIFORM:
-                limit = math.sqrt(6.0 / (self.fan_in + self.fan_out))
-                return Variable(random.uniform(a=-limit, b=limit))
-            
-            case InitializationType.HE_NORMAL:
-                stddev = math.sqrt(2.0 / self.fan_in)
-                return Variable(random.normalvariate(mu=0, sigma=stddev))
+        shape = (self.fan_in, self.fan_out)
 
-            case InitializationType.HE_UNIFORM:
-                limit = math.sqrt(6.0 / self.fan_in)
-                return Variable(random.uniform(a=-limit, b=limit))
+        # --- Basic Initializers ---
+        if self.fill_type == InitializationType.ZEROS:
+            return np.zeros(shape)
 
-            case InitializationType.LECUN_NORMAL:
-                stddev = math.sqrt(1.0 / self.fan_in)
-                return Variable(random.normalvariate(mu=0, sigma=stddev))
+        elif self.fill_type == InitializationType.CONSTANT:
+            return np.full(shape, self.constant_value)
 
-            case InitializationType.LECUN_UNIFORM:
-                limit = math.sqrt(3.0 / self.fan_in)
-                return Variable(random.uniform(a=-limit, b=limit))
-            
-            case _:
-                raise NotImplementedError(f'Weight initialization filler of type {self.fill_type} does not have any implementation yet')
+        elif self.fill_type == InitializationType.RANDOM_NORMAL:
+            return np.random.randn(*shape) * 0.01
+
+        elif self.fill_type == InitializationType.RANDOM_UNIFORM:
+            return np.random.uniform(-0.05, 0.05, shape)
+
+        if self.fan_in is None or self.fan_out is None:
+             raise ValueError(f"Initialization type '{self.fill_type.value}' requires 'fan_in' and 'fan_out'.")
+
+        # Glorot (Xavier) Initializers - good for tanh, sigmoid, softmax
+        if self.fill_type == InitializationType.GLOROT_UNIFORM:
+            limit = np.sqrt(6 / (self.fan_in + self.fan_out))
+            return np.random.uniform(-limit, limit, shape)
+        
+        elif self.fill_type == InitializationType.GLOROT_NORMAL:
+            stddev = np.sqrt(2 / (self.fan_in + self.fan_out))
+            return np.random.normal(0, stddev, shape)
+
+        # He Initializers - the recommended choice for ReLU activations
+        elif self.fill_type == InitializationType.HE_NORMAL:
+            stddev = np.sqrt(2 / self.fan_in)
+            return np.random.normal(0, stddev, shape)
+        
+        elif self.fill_type == InitializationType.HE_UNIFORM:
+            limit = np.sqrt(6 / self.fan_in)
+            return np.random.uniform(-limit, limit, shape)
+
+        # LeCun Initializers - a precursor to Glorot
+        elif self.fill_type == InitializationType.LECUN_NORMAL:
+            stddev = np.sqrt(1 / self.fan_in)
+            return np.random.normal(0, stddev, shape)
+
+        elif self.fill_type == InitializationType.LECUN_UNIFORM:
+            limit = np.sqrt(3 / self.fan_in)
+            return np.random.uniform(-limit, limit, shape)
+
+        else:
+            raise ValueError(f"Unknown initialization type: {self.fill_type}")
+
+
+    def init_biases(self, shape: tuple) -> np.ndarray:
+        """Initializes biases as a zero vector."""
+        return np.zeros(shape)
