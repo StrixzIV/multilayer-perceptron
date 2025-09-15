@@ -98,13 +98,12 @@ class Variable:
     
 
     def __rsub__(self, other: any):
-
-        other_var = other
-
-        if not isinstance(other, Variable):
-            other_var = Variable(other)
-
+        other_var = other if isinstance(other, Variable) else Variable(other)
         return other_var + (-self)
+    
+
+    def __rmul__(self, other: any):
+        return self * other
 
 
     def exp(self):
@@ -121,14 +120,7 @@ class Variable:
 
     def log(self, base: int | float = None):
 
-        result = 0
-
-        if not base:
-            result = math.log(self.value + EPSILON)
-
-        else:
-            result = math.log(self.value + EPSILON, base=base)
-        
+        result = math.log(self.value + EPSILON) if not base else math.log(self.value + EPSILON, base=base)
         ret = Variable(result, _parents=(self, ), _op=AutogradOPS.LOG)
 
         def _backward():
