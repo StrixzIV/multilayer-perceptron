@@ -1,8 +1,9 @@
 # utils/nn/sequential.py
 
-import numpy as np
 import json
 import copy
+import numpy as np
+import matplotlib.pyplot as plt
 
 from . import metrics
 from .layer import Dense, Dropout
@@ -61,6 +62,46 @@ class Sequential:
 
     def __init__(self, layers: list):
         self.layers = layers
+
+    
+    def _plot_training_history(self, history: dict, metric_name: str):
+
+        """Plots the training and validation loss and metrics."""
+        
+        epochs_range = range(1, len(history['loss']) + 1)
+        has_validation = 'val_loss' in history
+        
+        plt.figure(figsize=(12, 5))
+        
+        # Plot for Loss
+        plt.subplot(1, 2, 1)
+        plt.plot(epochs_range, history['loss'], '-', label='Training Loss')
+
+        if has_validation:
+            plt.plot(epochs_range, history['val_loss'], '-', label='Validation Loss')
+
+        plt.title('Loss Over Epochs')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.grid(True)
+
+        # Plot for Metric
+        plt.subplot(1, 2, 2)
+        plt.plot(epochs_range, history[metric_name], '-', label=f'Training {metric_name.capitalize()}')
+
+        if has_validation:
+            plt.plot(epochs_range, history[f'val_{metric_name}'], '-', label=f'Validation {metric_name.capitalize()}')
+
+        plt.title(f'{metric_name.capitalize()} Over Epochs')
+        plt.xlabel('Epoch')
+        plt.ylabel(metric_name.capitalize())
+        plt.legend()
+        plt.grid(True)
+        
+        plt.tight_layout()
+        plt.savefig('model_history.png')
+
 
     def summary(self):
 
@@ -180,7 +221,7 @@ class Sequential:
 
 
     def fit(self, x_train, y_train, optimizer, loss_func, epochs, batch_size, metric,
-            x_validate=None, y_validate=None, display_interval=1, early_stopping=None):
+            x_validate=None, y_validate=None, display_interval=1, early_stopping=None, plot_history: bool = True) -> dict[str, list[float]]:
 
         """Trains the model on the given dataset."""
 
@@ -191,6 +232,15 @@ class Sequential:
         }
 
         x_train, y_train = np.array(x_train), np.array(y_train)
+
+        history = {
+            'loss': [],
+            metric: []
+        }
+
+        if x_validate is not None and y_validate is not None:
+            history['val_loss'] = []
+            history[f'val_{metric}'] = []
 
         if x_validate is not None:
             x_validate, y_validate = np.array(x_validate), np.array(y_validate)
@@ -237,10 +287,17 @@ class Sequential:
                 
                 epoch_loss /= n_samples
                 epoch_metrics_score /= n_samples
+                history['loss'].append(epoch_loss)
+                history[metric].append(epoch_metrics_score)
                 log_msg = f"Epoch {epoch+1}/{epochs} - loss: {epoch_loss:.4f} - train_{metric}: {epoch_metrics_score:.4f}"
 
                 if x_validate is not None and y_validate is not None:
+                    
                     val_loss, val_metric = self.evaluate(x_validate, y_validate, metric_name=metric)
+                    
+                    history['val_loss'].append(val_loss)
+                    history[f'val_{metric}'].append(val_metric)
+                    
                     log_msg += f" - val_loss: {val_loss:.4f} - val_{metric}: {val_metric:.4f}"
                     
                     if early_stopping:
@@ -253,6 +310,12 @@ class Sequential:
                     console.print(log_msg)
                 
                 progress.update(epoch_task, advance=1)
+
+        if plot_history:
+            self._plot_training_history(history, metric)
+
+        return history
+
 
     def evaluate(self, x: np.ndarray, y: np.ndarray, metric_name: str) -> tuple[float, float]:
 
