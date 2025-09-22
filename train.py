@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(description="A training script for multilayer-p
 parser.add_argument("train_csv", help="Path to training data CSV dataset")
 parser.add_argument("vaildate_csv", help="Path to validation data CSV dataset")
 parser.add_argument("--label_column_idx", type=int, default=1, help="Index name of label data (target of prediction)")
-parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
+parser.add_argument("--epochs", type=int, default=500, help="Number of training epochs")
 parser.add_argument("--output", default="model", help="Output directory to save model and scalers (default: ./model)")
 
 def onehot_encode(target: str) -> list[int, int]:
@@ -76,35 +76,39 @@ y_validate = vaildate_df[1].apply(onehot_encode).tolist()
 model = Sequential([
     
     Dense(
-        shape=(n_features, 128), # Increased from 16
+        shape=(n_features, 64), # Increased from 64
         activation=Activation.RELU,
-        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=n_features, fan_out=128)
-    ),
-    
-    Dropout(rate=0.15, input_size=128), # Slightly reduced dropout
-
-    Dense(
-        shape=(128, 16),
-        activation=Activation.RELU,
-        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=128, fan_out=16)
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=n_features, fan_out=64)
     ),
 
     Dense(
-        shape=(16, n_classes), # Output layer
-        activation=Activation.SOFTMAX,
-        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=16, fan_out=n_classes)
+        shape=(64, 32),
+        activation=Activation.RELU,
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=64, fan_out=32)
+    ),
+   
+    Dense(
+        shape=(32, 32),
+        activation=Activation.RELU,
+        initializer=Initializer(fill_type=InitializationType.HE_NORMAL, fan_in=32, fan_out=32)
+    ),
+
+    Dense(
+        shape=(32, n_classes), # Output layer
+        activation=Activation.SIGMOID,
+        initializer=Initializer(fill_type=InitializationType.GLOROT_NORMAL, fan_in=32, fan_out=n_classes)
     )
     
 ])
 
 optimizer = Adam(
     params=model.parameters(), 
-    learning_rate=0.001
+    learning_rate=5e-3
 )
 
 early_stopping = EarlyStopping(
-    patience=5,
-    min_delta=0.001,
+    patience=100,
+    min_delta=1e-3,
     restore_best_weights=True
 )
 
@@ -117,7 +121,7 @@ model.fit(
     optimizer=optimizer,
     loss_func=binary_crossentropy_loss,
     epochs=args.epochs,
-    batch_size=16,
+    batch_size=64,
     metric="accuracy",
     x_validate=x_validate_scaled,
     y_validate=y_validate,
