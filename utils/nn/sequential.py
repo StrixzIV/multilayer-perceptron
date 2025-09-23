@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from . import metrics
+from .neuron import Activation
 from .layer import Dense, Dropout
 
 from rich.table import Table
@@ -384,3 +385,58 @@ class Sequential:
 
         with open(filepath, 'w') as f:
             json.dump(model_dict, f, indent=4)
+
+
+    @classmethod
+    def from_json(cls, filepath: str) -> 'Sequential':
+
+        """
+        Load a model from a JSON file.
+        
+        Args:
+            filepath: Path to the JSON file containing the model architecture and weights.
+            
+        Returns:
+            Sequential model instance with loaded weights and architecture.
+        """
+        
+        with open(filepath, 'r') as f:
+            model_dict = json.load(f)
+        
+        layers = []
+        weight_idx = 0
+        
+        for layer_config in model_dict["architecture"]:
+            class_name = layer_config["class_name"]
+            
+            if class_name == "Dense":
+                config = layer_config["config"]
+                shape = tuple(config["shape"])
+                activation_name = config.get("activation")
+                
+                # Get activation function
+                activation_func = None
+
+                if activation_name:
+                    activation_func = getattr(Activation, activation_name, None)
+                
+                # Create layer with dummy initializer (we'll set weights manually)
+                layer = Dense(shape=shape, activation=activation_func, initializer=None)
+                
+                # Load weights and biases
+                if weight_idx < len(model_dict["weights"]):
+                    weights_data = model_dict["weights"][weight_idx]
+                    layer.weights = np.array(weights_data["weights"])
+                    layer.biases = np.array(weights_data["biases"])
+                    weight_idx += 1
+                
+                layers.append(layer)
+                
+            elif class_name == "Dropout":
+                config = layer_config["config"]
+                rate = config["rate"]
+                # Note: input_size isn't strictly needed for prediction
+                layer = Dropout(rate=rate, input_size=128)  
+                layers.append(layer)
+        
+        return cls(layers)
